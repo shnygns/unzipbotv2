@@ -81,7 +81,7 @@ async def unzipper_cb(_, query: CallbackQuery, texts):
                     cleng = (await ses.head(url)).headers.get("Content-Length")
                     fsize = humanbytes(int(cleng)) if cleng else "undefined"
                     # Makes download dir
-                    makedirs(download_path)
+                    makedirs(download_path, exist_ok=True)
                     # Send logs
                     await unzip_client.send_message(Config.LOGS_CHANNEL, texts["log"].format(user_id, "N/A", "N/A", url, fsize))
                 s_time = time()
@@ -91,16 +91,22 @@ async def unzipper_cb(_, query: CallbackQuery, texts):
 
             elif splitted_data[1] == "tg_file":
                 # Makes download dir
-                makedirs(download_path)
+                makedirs(download_path, exist_ok=True)
                 # Send Logs
                 rdoc = r_message.document
                 rchat = r_message.forward_from_chat
+                rchat_title = rchat.title if rchat else "N/A"
+                rchat_id = rchat.id if rchat else "N/A"
+                human_bytes = humanbytes(rdoc.file_size)
+
+
+
                 await r_message.copy(Config.LOGS_CHANNEL, texts["log"].format(
                     user_id,
-                    rchat.title if rchat else "N/A",
-                    rchat.id if rchat else "N/A",
+                    rchat_title,
+                    rchat_id,
                     rdoc.file_name,
-                    humanbytes(rdoc.file_size))
+                    human_bytes)
                 )
                 s_time = time()
                 arc_name = f"{download_path}/archive_from_{user_id}_{rdoc.file_name}"
@@ -117,14 +123,29 @@ async def unzipper_cb(_, query: CallbackQuery, texts):
             await unzip_client.answer_query(query, texts["ok_download"].format(arc_name, TimeFormatter(round(e_time-s_time) * 1000)))
 
             # Checks if the archive is a splitted one
+            #arc_ext = path.splitext(arc_name)[1]
+            #if arc_ext.replace(".", "").isnumeric():
+            #    password = ""
+            #    if splitted_data[2] == "with_pass":
+            #        password = (await unzip_client.ask(query.message.chat.id, texts["ask_password"])).text
+            #    await unzip_client.answer_query(query, texts["alert_splitted_arc"])
+            #    await add_split_arc_user(user_id, arc_name, password)
+            #    return
+
+            # Checks if the archive is a splitted one
             arc_ext = path.splitext(arc_name)[1]
-            if arc_ext.replace(".", "").isnumeric():
+            arc_base_ext = path.splitext(path.splitext(arc_name)[0])[1] + path.splitext(arc_name)[1]
+
+            # Check for numeric extensions (e.g., .001, .002) or RAR split extensions (e.g., .part1.rar, .part2.rar)
+            if arc_ext.replace(".", "").isnumeric() or (arc_base_ext.lower().startswith(".part") and arc_ext.lower() == ".rar"):
                 password = ""
                 if splitted_data[2] == "with_pass":
                     password = (await unzip_client.ask(query.message.chat.id, texts["ask_password"])).text
                 await unzip_client.answer_query(query, texts["alert_splitted_arc"])
                 await add_split_arc_user(user_id, arc_name, password)
                 return
+
+
 
             # Extract
             exter = Extractor()

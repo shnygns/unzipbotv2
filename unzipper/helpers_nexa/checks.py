@@ -33,7 +33,7 @@ def get_bot_chat_id():
 def check_log_channel():
     try:
         if Config.LOGS_CHANNEL:
-            bot_user_id = get_bot_chat_id()
+            # bot_user_id = get_bot_chat_id()
             # c_info = unzip_client.get_chat(chat_id=Config.LOGS_CHANNEL)
             c_info = unzip_client.get_chat(chat_id=int(-1002429834992))
             if c_info.type != enums.ChatType.CHANNEL:

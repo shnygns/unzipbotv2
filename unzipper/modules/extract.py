@@ -43,7 +43,10 @@ async def extract_dis_archive(_, message: Message, texts):
         file_name = is_doc.file_name if is_doc else path.basename(message.text)
         await unzip_msg.edit(texts["alert_downloading_part"])
         # Check file extension
-        if not path.splitext(file_name)[1].replace(".", "").isnumeric():
+        file_ext = path.splitext(file_name)[1].replace(".", "")
+        base_ext = path.splitext(path.splitext(file_name)[0])[1].replace(".", "")
+
+        if not (file_ext.isnumeric() or (base_ext.startswith("part") and file_ext.lower() == "rar")):
             return await unzip_msg.edit(texts["no_splitted_arc"])
         arc_name = f"{download_path}/archive_from_{user_id}_{file_name}"
         if path.isfile(arc_name):
@@ -112,6 +115,9 @@ async def extracted_dis_spl_archive(_, message: Message, texts):
     # Extract the archive
     ext = Extractor()
     s_time = time()
+
+
+    """
     await ext.extract(lfn, ext_path, ps, True)
     extdarc = f"{ext_path}/{path.splitext(path.basename(lfn))[0]}"
     await ext.extract(extdarc, ext_path, ps)
@@ -122,6 +128,29 @@ async def extracted_dis_spl_archive(_, message: Message, texts):
         remove(extdarc)
     except:
         pass
+    """
+
+
+    ext_type = path.splitext(lfn)[1].lower()
+    arch_type = path.splitext(path.splitext(lfn)[0])[1] + path.splitext(lfn)[1]
+    if ext_type == ".rar" or (arch_type.startswith(".part") and arch_type.endswith(".rar")):
+        # Handle split RAR archives
+        await ext.extract(lfn, ext_path, ps, True)
+        e_time = time()
+    else:
+        # Handle split 7z archives
+        await ext.extract(lfn, ext_path, ps, True)
+        extdarc = f"{ext_path}/{path.splitext(path.basename(lfn))[0]}"
+        await ext.extract(extdarc, ext_path, ps)
+        e_time = time()
+        # Try to remove merged archive
+        try:
+            remove(extdarc)
+        except:
+            pass
+    
+    await spl_umsg.edit(texts["ok_extract"].format(TimeFormatter(round(e_time-s_time) * 1000)))
+
     paths = await get_files(ext_path)
     i_e_btns = await Buttons.make_files_keyboard(paths, user_id, message.chat.id)
     try:

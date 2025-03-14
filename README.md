@@ -78,12 +78,12 @@ pip3 install -r requirements.txt
 
 # Arch linux
 sudo pacman -Syyu
-sudo pacman -S zstd p7zip
+sudo pacman -S zstd p7zip unrar
 
 # Ubuntu
 sudo add-apt-repository universe
 sudo apt update
-sudo apt install p7zip-full p7zip-rar zstd
+sudo apt install p7zip-full p7zip-rar zstd unrar
 ```
 
 <h4 align="center">Edit config.py with your own values</h4>

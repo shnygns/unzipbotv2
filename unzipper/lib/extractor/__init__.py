@@ -10,7 +10,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>   #
 # ===================================================================== #
 
-from os import path, mkdir
+from os import path, mkdir, makedirs
 from .errors import ExtractionFailed
 from unzipper.helpers_nexa.utils import run_shell_cmds, run_cmds_on_cr
 
@@ -34,9 +34,16 @@ class Extractor:
             - `password` - Password to use incase if the archive is password protected
             - `splitted` - Pass True if the archive is a splitted archive which usually ends with .001 (+) extensions
         """
-        if path.splitext(arc_path)[1] == ".zst":
+        ext = path.splitext(arc_path)[1]
+        arc_base_ext = path.splitext(path.splitext(arc_path)[0])[1] + path.splitext(arc_path)[1]
+        if ext == ".zst":
             mkdir(out)
             ex = await self._ext_zstd(out, arc_path)
+            await self.__check_output(ex)
+            return ex
+        elif ext == ".rar" or (splitted and arc_base_ext.startswith(".part") and arc_base_ext.endswith(".rar")):
+            mkdir(out)
+            ex = await self._ext_rar(out, arc_path, password, splitted)
             await self.__check_output(ex)
             return ex
         else:
@@ -50,6 +57,13 @@ class Extractor:
         else:
             command = f"7z x -o\"{out}\" \"{arc_path}\" -y"
         command += " -tsplit" if splitted else ""
+        return await run_cmds_on_cr(run_shell_cmds, command)
+    
+    async def _ext_rar(self, out: str, arc_path: str, password: str = "", splitted: bool = False):
+        if password:
+            command = f"unrar x -o+ -p{password} \"{arc_path}\" \"{out}\""
+        else:
+            command = f"unrar x -o+ \"{arc_path}\" \"{out}\""
         return await run_cmds_on_cr(run_shell_cmds, command)
 
     async def _ext_zstd(self, out: str, arc_path: str):

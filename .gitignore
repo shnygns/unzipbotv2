@@ -1,3 +1,5 @@
 .dev/
 config.py
 /NexaBots/
+*.session
+*.pyc
